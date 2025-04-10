@@ -16,7 +16,7 @@ const initialState = {
 
 //functions
 export const getConversations = createAsyncThunk(
-  "conervsation/all",
+  "conversation/all",
   async (token, { rejectWithValue }) => {
     try {
       const { data } = await axios.get(CONVERSATION_ENDPOINT, {
@@ -31,7 +31,7 @@ export const getConversations = createAsyncThunk(
   }
 );
 export const open_create_conversation = createAsyncThunk(
-  "conervsation/open_create",
+  "conversation/open_create",
   async (values, { rejectWithValue }) => {
     const { token, receiver_id, isGroup } = values;
     try {
@@ -51,7 +51,7 @@ export const open_create_conversation = createAsyncThunk(
   }
 );
 export const getConversationMessages = createAsyncThunk(
-  "conervsation/messages",
+  "conversation/messages",
   async (values, { rejectWithValue }) => {
     const { token, convo_id } = values;
     try {
@@ -69,7 +69,10 @@ export const getConversationMessages = createAsyncThunk(
 export const sendMessage = createAsyncThunk(
   "message/send",
   async (values, { rejectWithValue }) => {
-    const { token, message, convo_id, files, expiresAt } = values;
+    const { token, message, convo_id, files, expiresAt, scheduledAt } = values;
+    // console.log("🚀 Sending expiresAt:", expiresAt); // Debugging
+    console.log("Sending scheduledAt:", scheduledAt); // ✅ Debug print
+    console.log("Sending expiresAt:", expiresAt);
     try {
       const { data } = await axios.post(
         MESSAGE_ENDPOINT,
@@ -78,6 +81,7 @@ export const sendMessage = createAsyncThunk(
           convo_id,
           files,
           expiresAt,
+          scheduledAt,
         },
         {
           headers: {
@@ -92,7 +96,7 @@ export const sendMessage = createAsyncThunk(
   }
 );
 export const createGroupConversation = createAsyncThunk(
-  "conervsation/create_group",
+  "conversation/create_group",
   async (values, { rejectWithValue }) => {
     const { token, name, users } = values;
     try {
@@ -121,7 +125,7 @@ export const chatSlice = createSlice({
     updateMessagesAndConversations: (state, action) => {
       //update messages
       let convo = state.activeConversation;
-      if (convo._id === action.payload.conversation._id) {
+      if (convo && convo._id === action.payload.conversation._id) {
         state.messages = [...state.messages, action.payload];
       }
       //update conversations
@@ -142,10 +146,11 @@ export const chatSlice = createSlice({
       state.files = [];
     },
     removeFileFromFiles: (state, action) => {
-      let index = action.payload;
-      let files = [...state.files];
-      let fileToRemove = [files[index]];
-      state.files = files.filter((file) => !fileToRemove.includes(file));
+      // let index = action.payload;
+      // let files = [...state.files];
+      // let fileToRemove = [files[index]];
+      // state.files = files.filter((file) => !fileToRemove.includes(file));
+      state.files = state.files.filter((_, i) => i !== action.payload);
     },
     // features/chatSlice.js for dissapearing messages.
     removeMessage: (state, action) => {
@@ -192,9 +197,36 @@ export const chatSlice = createSlice({
       .addCase(sendMessage.pending, (state, action) => {
         state.status = "loading";
       })
+      // .addCase(sendMessage.fulfilled, (state, action) => {
+      //   state.status = "succeeded";
+      //   state.messages = [...state.messages, action.payload];
+      //   let conversation = {
+      //     ...action.payload.conversation,
+      //     latestMessage: action.payload,
+      //   };
+      //   let newConvos = [...state.conversations].filter(
+      //     (c) => c._id !== conversation._id
+      //   );
+      //   newConvos.unshift(conversation);
+      //   state.conversations = newConvos;
+      //   state.files = [];
+      // })
+
       .addCase(sendMessage.fulfilled, (state, action) => {
         state.status = "succeeded";
+
         state.messages = [...state.messages, action.payload];
+
+        // ✅ Only update UI if message is NOT scheduled
+        // if (action.payload.sent === true) {
+        //   state.messages.push(action.payload);
+        // }
+
+        // ✅ Show only if message was sent now
+        // if (action.payload.sent) {
+        //   state.messages = [...state.messages, action.payload];
+        // }
+
         let conversation = {
           ...action.payload.conversation,
           latestMessage: action.payload,
@@ -206,6 +238,7 @@ export const chatSlice = createSlice({
         state.conversations = newConvos;
         state.files = [];
       })
+
       .addCase(sendMessage.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload;

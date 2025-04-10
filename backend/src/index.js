@@ -1,11 +1,18 @@
 import mongoose from "mongoose";
-import { Server } from "socket.io";
 import app from "./app.js";
 import logger from "./configs/logger.config.js";
 import SocketServer from "./SocketServer.js";
 import dotenv from "dotenv";  
 dotenv.config({ path: ".env.example" });
 import http from "http";
+import { Server } from "socket.io";
+import { scheduleMessagesCron } from "./scheduledMessages.js";
+import disappearingMessages from "./disappearingMessages.js";
+
+
+
+// disappearingMessages(io);
+// console.log("📦 Disappearing Messages Module Loaded");
 
 // require('dotenv').config();
 //env variables
@@ -38,6 +45,7 @@ server = app.listen(PORT, () => {
   console.log("Port: " + PORT)
 });
 
+
 //socket io
 const io = new Server(server, {
   // pingTimeout: 60000,
@@ -52,6 +60,13 @@ const io = new Server(server, {
     transports: ["websocket", "polling"], // Ensure proper transport
   },
 });
+app.set("io", io);
+scheduleMessagesCron(io);
+console.log("📦 Scheduled Messages Module Loaded");
+
+disappearingMessages(io);
+console.log("📦 Disappearing Messages Module Loaded");
+
 io.on("connection", (socket) => {
   logger.info("socket io connected successfully.");
   SocketServer(socket, io);

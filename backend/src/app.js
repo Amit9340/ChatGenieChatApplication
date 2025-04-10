@@ -10,23 +10,12 @@ import cors from "cors";
 import createHttpError from "http-errors";
 import routes from "./routes/index.js";
 import translationRoutes from "./routes/translation.js";
-import http from "http";
-import { Server } from "socket.io";
-import disappearingMessages from "./disappearingMessages.js";
+
 
 //dotEnv config
 dotenv.config();
-
 //create express app
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-  },
-});
-
-disappearingMessages(io);
 
 //morgan
 if (process.env.NODE_ENV !== "production") {

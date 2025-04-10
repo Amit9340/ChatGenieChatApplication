@@ -12,7 +12,7 @@ export default function Sidebar({ onlineUsers, typing }) {
       {/*Sidebar Header*/}
       <SidebarHeader />
       {/*Notifications */}
-      <Notifications />
+      {/* <Notifications /> */}
       {/*Search*/}
       <Search
         searchLength={searchResults.length}
