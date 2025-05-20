@@ -8,6 +8,7 @@ import Home from "./pages/home";
 import Login from "./pages/login";
 import Register from "./pages/register";
 import process from "process";
+import ScreenReceivePopup from "./components/Chat/ScreenShare/ScreenReceivePopup";
 window.process = process;
 
 // import dotenv from "dotenv";
@@ -66,6 +67,7 @@ function App() {
           </Routes>
         </BrowserRouter>
       </SocketContext.Provider>
+      <ScreenReceivePopup/>
     </div>
   );
 }

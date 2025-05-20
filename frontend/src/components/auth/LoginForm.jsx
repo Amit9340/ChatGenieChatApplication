@@ -5,7 +5,7 @@ import AuthInput from "./AuthInput";
 import { useDispatch, useSelector } from "react-redux";
 import PulseLoader from "react-spinners/PulseLoader";
 import { Link, useNavigate } from "react-router-dom";
-import { loginUser } from "../../features/userSlice";
+import { loginUser, setCurrentUser } from "../../features/userSlice";
 export default function RegisterForm() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -21,6 +21,7 @@ export default function RegisterForm() {
     let res = await dispatch(loginUser({ ...values }));
     console.log(res);
     if (res?.payload?.user) {
+      dispatch(setCurrentUser(res.payload.user));
       navigate("/");
     }
   };

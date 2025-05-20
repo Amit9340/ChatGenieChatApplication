@@ -5,6 +5,7 @@ const CONVERSATION_ENDPOINT = `${process.env.REACT_APP_API_ENDPOINT}/conversatio
 const MESSAGE_ENDPOINT = `${process.env.REACT_APP_API_ENDPOINT}/message`;
 
 const initialState = {
+  selectedUser: null,
   status: "",
   error: "",
   conversations: [],
@@ -122,23 +123,57 @@ export const chatSlice = createSlice({
     setActiveConversation: (state, action) => {
       state.activeConversation = action.payload;
     },
+    //   //update messages
+    //   let convo = state.activeConversation;
+    //   if (convo && convo._id === action.payload.conversation._id) {
+    //     state.messages = [...state.messages, action.payload];
+    //   }
+    //   //update conversations
+    //   let conversation = {
+    //     ...action.payload.conversation,
+    //     latestMessage: action.payload,
+    //   };
+    //   let newConvos = [...state.conversations].filter(
+    //     (c) => c._id !== conversation._id
+    //   );
+    //   newConvos.unshift(conversation);
+    //   state.conversations = newConvos;
+    // },
+
     updateMessagesAndConversations: (state, action) => {
-      //update messages
-      let convo = state.activeConversation;
-      if (convo && convo._id === action.payload.conversation._id) {
-        state.messages = [...state.messages, action.payload];
+      const exists = state.messages.find(
+        (msg) => msg._id === action.payload._id
+      );
+      if (!exists) {
+        state.messages.push(action.payload);
       }
-      //update conversations
+
+      // Update conversations
+      // let conversation = {
+      //   ...action.payload.conversation,
+      //   latestMessage: action.payload,
+      // };
+
+      const now = new Date();
+      const msg = action.payload;
+
+      const isDisplayable =
+        msg.sent !== false || // already sent
+        (msg.scheduledAt && new Date(msg.scheduledAt) <= now); // scheduled time arrived
+
       let conversation = {
-        ...action.payload.conversation,
-        latestMessage: action.payload,
+        ...msg.conversation,
+        latestMessage: isDisplayable ? msg : msg.conversation.latestMessage,
       };
+
       let newConvos = [...state.conversations].filter(
         (c) => c._id !== conversation._id
       );
       newConvos.unshift(conversation);
       state.conversations = newConvos;
     },
+    
+
     addFiles: (state, action) => {
       state.files = [...state.files, action.payload];
     },
@@ -197,47 +232,73 @@ export const chatSlice = createSlice({
       .addCase(sendMessage.pending, (state, action) => {
         state.status = "loading";
       })
+
       // .addCase(sendMessage.fulfilled, (state, action) => {
       //   state.status = "succeeded";
-      //   state.messages = [...state.messages, action.payload];
-      //   let conversation = {
-      //     ...action.payload.conversation,
-      //     latestMessage: action.payload,
-      //   };
-      //   let newConvos = [...state.conversations].filter(
-      //     (c) => c._id !== conversation._id
-      //   );
-      //   newConvos.unshift(conversation);
-      //   state.conversations = newConvos;
+
+      //   // ✅ Only add message if it is already marked as sent (not scheduled)
+      //   if (action.payload.sent !== false) {
+      //     state.messages = [...state.messages, action.payload];
+
+      //     // let conversation = {
+      //     //   ...action.payload.conversation,
+      //     //   latestMessage: action.payload,
+      //     // };
+
+      //     const now = new Date();
+      //     const msg = action.payload;
+
+      //     const isDisplayable =
+      //       msg.sent !== false || // already sent
+      //       (msg.scheduledAt && new Date(msg.scheduledAt) <= now); // scheduled time arrived
+
+      //     let conversation = {
+      //       ...msg.conversation,
+      //       latestMessage: isDisplayable ? msg : msg.conversation.latestMessage,
+      //     };
+
+      //     let newConvos = [...state.conversations].filter(
+      //       (c) => c._id !== conversation._id
+      //     );
+      //     newConvos.unshift(conversation);
+      //     state.conversations = newConvos;
+      //   }
+
       //   state.files = [];
       // })
 
       .addCase(sendMessage.fulfilled, (state, action) => {
         state.status = "succeeded";
-
-        state.messages = [...state.messages, action.payload];
-
-        // ✅ Only update UI if message is NOT scheduled
-        // if (action.payload.sent === true) {
-        //   state.messages.push(action.payload);
-        // }
-
-        // ✅ Show only if message was sent now
-        // if (action.payload.sent) {
-        //   state.messages = [...state.messages, action.payload];
-        // }
-
-        let conversation = {
-          ...action.payload.conversation,
-          latestMessage: action.payload,
+        const msg = action.payload;
+        const now = new Date();
+      
+        const isDisplayable =
+          msg.sent !== false || // Already sent (immediate message)
+          (msg.scheduledAt && new Date(msg.scheduledAt) <= now); // Scheduled time arrived
+      
+        // ✅ Only add to chat screen if displayable
+        if (isDisplayable) {
+          state.messages = [...state.messages, msg];
+        }
+      
+        // ✅ Update conversations only if it's displayable
+        const convoId = msg.conversation._id;
+        const oldConvo = state.conversations.find((c) => c._id === convoId);
+      
+        let updatedConvo = {
+          ...msg.conversation,
+          latestMessage: isDisplayable
+            ? msg
+            : oldConvo?.latestMessage || null, // don't overwrite with future msg
         };
-        let newConvos = [...state.conversations].filter(
-          (c) => c._id !== conversation._id
-        );
-        newConvos.unshift(conversation);
+      
+        let newConvos = state.conversations.filter((c) => c._id !== convoId);
+        newConvos.unshift(updatedConvo);
         state.conversations = newConvos;
+      
         state.files = [];
       })
+      
 
       .addCase(sendMessage.rejected, (state, action) => {
         state.status = "failed";

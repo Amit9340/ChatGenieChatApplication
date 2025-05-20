@@ -8,6 +8,7 @@ import http from "http";
 import { Server } from "socket.io";
 import { scheduleMessagesCron } from "./scheduledMessages.js";
 import disappearingMessages from "./disappearingMessages.js";
+import screenShareSocket from "./screenShareSocket.js";
 
 
 
@@ -40,18 +41,20 @@ mongoose.connect(DATABASE_URL).then(() => {
 // let server;
 // Create HTTP server (✔ Fix: Define server properly)
 let server = http.createServer(app);
-server = app.listen(PORT, () => {
+// server = app.listen(PORT, () => {
+//   logger.info(`Server is listening at ${PORT}.`);
+//   console.log("Port: " + PORT)
+// });
+
+// Start server
+server.listen(PORT, () => {
   logger.info(`Server is listening at ${PORT}.`);
-  console.log("Port: " + PORT)
+  console.log("Port: " + PORT);
 });
 
 
 //socket io
 const io = new Server(server, {
-  // pingTimeout: 60000,
-  // cors: {
-  //   origin: process.env.CLIENT_ENDPOINT,
-  // },
   cors: {
     // origin: process.env.CLIENT_ENDPOINT || "http://localhost:3000", // Allow frontend origin
     origin: "*", // Change to specific frontend URL for security
@@ -66,6 +69,9 @@ console.log("📦 Scheduled Messages Module Loaded");
 
 disappearingMessages(io);
 console.log("📦 Disappearing Messages Module Loaded");
+
+screenShareSocket(io);
+console.log("📦 screenShareSocket Module Loaded");
 
 io.on("connection", (socket) => {
   logger.info("socket io connected successfully.");

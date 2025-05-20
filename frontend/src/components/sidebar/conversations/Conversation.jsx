@@ -9,7 +9,7 @@ import {
 import { dateHandler } from "../../../utils/date";
 import { capitalize } from "../../../utils/string";
 
-function Conversation({ convo, socket, online, typing }) {
+function Conversation({ convo, socket, online, typing , onSelect}) {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.user);
   const { activeConversation } = useSelector((state) => state.chat);
@@ -25,7 +25,10 @@ function Conversation({ convo, socket, online, typing }) {
   };
   return (
     <li
-      onClick={() => openConversation()}
+      onClick={() => {
+        onSelect();        // Call the onSelect function to set active conversation
+        openConversation(); // Call openConversation to trigger the socket event
+      }}
       className={`list-none h-[72px] w-full dark:bg-dark_bg_1 hover:${
         convo._id !== activeConversation._id ? "dark:bg-dark_bg_2" : ""
       } cursor-pointer dark:text-dark_text_1 px-[10px] ${

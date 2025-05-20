@@ -17,13 +17,39 @@ export default function ChatMessages({ typing }) {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("newMessage", (message) => {
+    const handleNewMessage = (message) => {
       console.log("📩 Received new message via socket:", message);
       dispatch(updateMessagesAndConversations(message));
-    });
+    };
 
-    return () => socket.off("newMessage");
+    socket.off("sendMessage", handleNewMessage);
+    socket.on("sendMessage", handleNewMessage);
+
+    return () => {
+      socket.off("sendMessage", handleNewMessage);
+    };
   }, [socket, dispatch]);
+
+  // useEffect(() => {
+  //   if (socket && activeConversation?._id) {
+  //     console.log("🚪 Joining room in ChatMessages:", activeConversation._id);
+  //     socket.emit("joinRoom", activeConversation._id);
+  //   }
+  // }, [socket, activeConversation?._id]);
+
+  const prevRoom = useRef();
+
+  useEffect(() => {
+    if (
+      socket &&
+      activeConversation?._id &&
+      prevRoom.current !== activeConversation._id
+    ) {
+      console.log("🚪 Joining room in ChatMessages:", activeConversation._id);
+      socket.emit("joinRoom", activeConversation._id);
+      prevRoom.current = activeConversation._id;
+    }
+  }, [socket, activeConversation?._id]);
 
   // ⬇️ Auto scroll
   useEffect(() => {

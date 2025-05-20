@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { ClipLoader } from "react-spinners";
 import { removeMessage, sendMessage } from "../../../features/chatSlice";
+import { updateMessagesAndConversations } from "../../../features/chatSlice";
 import { SendIcon } from "../../../svg";
 import { Attachments } from "./attachments";
 import EmojiPickerApp from "./EmojiPicker";
@@ -68,7 +69,10 @@ function ChatActions({ socket }) {
 
     setLoading(true);
     const expiresAt = new Date(dateTime).toISOString();
-    const scheduledAt = new Date(scheduleTime).toISOString();
+    // const scheduledAt = new Date(scheduleTime).toISOString();
+    const scheduledAt = scheduleTime
+      ? new Date(scheduleTime).toISOString()
+      : undefined;
 
     const newMsg = await dispatch(
       sendMessage({
@@ -80,19 +84,29 @@ function ChatActions({ socket }) {
       })
     );
 
+    // if (dateTime && !scheduleTime) {
+    //   socket.emit("sendMessage", newMsg.payload);
+    // }
+
+    // // ✅ Emit only if not scheduled
+    // if (!dateTime) {
+    //   socket.emit("sendMessage", {
+    //     sender: user._id,
+    //     receiver: activeConversation._id,
+    //     content: message,
+    //     expiresAt,
+    //     scheduledAt,
+    //   });
+    // }
+
     // ✅ Emit only if not scheduled
-    if (!dateTime) {
-      socket.emit("sendMessage", {
-        sender: user._id,
-        receiver: activeConversation._id,
-        content: message,
-        expiresAt,
-        scheduledAt,
-      });
+    if (!scheduledAt) {
+      socket.emit("sendMessage", newMsg.payload);
     }
 
     setMessage("");
     setDateTime("");
+    setScheduleTime(null);
     setLoading(false);
   };
 
@@ -123,14 +137,14 @@ function ChatActions({ socket }) {
     );
 
     // ✅ Emit only if not scheduled
-    if (!scheduleTime) {
-      socket.emit("scheduleMessage", {
-        sender: user._id,
-        receiver: activeConversation._id,
-        content: message,
-        scheduledAt,
-      });
-    }
+    // if (!scheduleTime) {
+    //   socket.emit("scheduleMessage", {
+    //     sender: user._id,
+    //     receiver: activeConversation._id,
+    //     content: message,
+    //     scheduledAt,
+    //   });
+    // }
 
     setMessage("");
     setScheduleTime(null);
@@ -138,12 +152,33 @@ function ChatActions({ socket }) {
     setLoading(false);
   };
 
+  // useEffect(() => {
+  //   socket.on("deleteMessage", (messageId) => {
+  //     console.log("🧨 Message expired and deleted:", messageId);
+  //     dispatch(removeMessage(messageId));
+  //   });
+  //   return () => socket.off("deleteMessage");
+  // }, [dispatch]);
+
   useEffect(() => {
+    if (!socket) return;
+
     socket.on("deleteMessage", (messageId) => {
+      console.log("🧨 Message expired and deleted:", messageId);
       dispatch(removeMessage(messageId));
     });
+
     return () => socket.off("deleteMessage");
-  }, [dispatch]);
+  }, [socket, dispatch]);
+
+  //useEffect for scheduled msg
+  useEffect(() => {
+    socket.on("sendMessage", (msg) => {
+      dispatch(updateMessagesAndConversations(msg));
+    });
+
+    return () => socket.off("sendMessage");
+  }, [socket, dispatch]);
 
   useEffect(() => {
     if (socket && activeConversation?._id) {

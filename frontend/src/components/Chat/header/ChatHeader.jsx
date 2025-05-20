@@ -13,6 +13,7 @@ import {
   getConversationName,
   getConversationPicture,
 } from "../../../utils/chat";
+import ScreenShare from "../ScreenShare/ScreenShare";
 function ChatHeader({ online, callUser, socket }) {
   const { activeConversation } = useSelector((state) => state.chat);
   const { user } = useSelector((state) => state.user);
@@ -53,6 +54,13 @@ function ChatHeader({ online, callUser, socket }) {
         </div>
         {/*Right*/}
         <ul className="flex items-center gap-x-2.5">
+          {1 == 1 ? (
+            <li>
+              <button className="btn">
+                <ScreenShare />
+              </button>
+            </li>
+          ) : null}
           {1 == 1 ? (
             <li onClick={() => callUser()}>
               <button className="btn">

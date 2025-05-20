@@ -1,49 +1,54 @@
+//backend>src>scheduledMessage.js
 import mongoose from "mongoose";
 import Message from "./models/messageModel.js";
 
 export const scheduleMessagesCron = (io) => {
   setInterval(async () => {
     console.log("⏰ Scheduler Running...");
+
     const now = new Date();
+
+    // ✅ Get all messages that are due and not yet sent
     const dueMessages = await Message.find({
       scheduledAt: { $lte: now },
       sent: false,
     });
 
-    // 🔽 Yaha ye if block add karo
     if (dueMessages.length > 0) {
       console.log("📤 Messages to send now:", dueMessages.length);
     }
 
     for (const msg of dueMessages) {
-      // Use the same now for comparison
       const timeDiff = new Date(msg.scheduledAt) - now;
-      // Allow a margin of 1 second to prevent microsecond error
+
+      // ✅ Allow 1 second margin for micro-differences
       if (timeDiff > 1000) {
-        console.log(
-          "⛔ Skipping message scheduled in the future:",
-          msg._id,
-          "in",
-          timeDiff,
-          "ms"
-        );
-        continue;
-      }
-      // const now = new Date();
-      // ⛔ Prevent sending if time is invalid (somehow scheduledAt is in the past but sent = false)
-      if (msg.scheduledAt && new Date(msg.scheduledAt) > now) {
-        console.log("⛔ Skipping message scheduled in the future:", msg._id);
+        console.log("⏳ Skipping future message:", msg._id, "in", timeDiff, "ms");
         continue;
       }
 
-      console.log("📤 Sending scheduled message ID:", msg._id);
-      // io.to(msg.conversation.toString()).emit("newMessage", msg);
-      io.to(msg.conversation.toString()).emit("newMessage", {
-        ...msg.toObject(),
-        sent: true,
-      });
+      // ✅ Mark as sent in DB
       msg.sent = true;
       await msg.save();
+
+      // ✅ Populate message
+      const populatedMsg = await Message.findById(msg._id)
+        .populate("sender", "username name picture _id email status")
+        .populate({
+          path: "conversation",
+          populate: {
+            path: "users",
+            select: "username name picture email status",
+          },
+        });
+
+      // ✅ Emit to conversation room
+      io.to(populatedMsg.conversation._id.toString()).emit(
+        "sendMessage",
+        populatedMsg
+      );
+
+      console.log("📩 Sent scheduled message:", populatedMsg._id);
     }
-  }, 30 * 1000); // every 30 seconds
+  }, 1000); // ⏲️ Check every 30 seconds
 };

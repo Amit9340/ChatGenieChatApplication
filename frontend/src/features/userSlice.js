@@ -15,6 +15,9 @@ const initialState = {
     picture: "",
     status: "",
     token: "",
+    socketId: "",
+    currentUser: null,
+    selectedChat: null,
   },
 };
 
@@ -59,10 +62,20 @@ export const userSlice = createSlice({
         picture: "",
         status: "",
         token: "",
+        socketId: "",
       };
     },
     changeStatus: (state, action) => {
       state.status = action.payload;
+    },
+    updateSocketId: (state, action) => {
+      state.user.socketId = action.payload;
+    },
+    setCurrentUser: (state, action) => {
+      state.currentUser = action.payload;
+    },
+    setSelectedChat: (state, action) => {
+      state.selectedChat = action.payload;
     },
   },
   extraReducers(builder) {
@@ -73,7 +86,10 @@ export const userSlice = createSlice({
       .addCase(registerUser.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.error = "";
-        state.user = action.payload.user;
+        state.user = {
+          ...action.payload.user,
+          socketId: "", // ensure socketId is at least initialized
+        };
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.status = "failed";
@@ -85,7 +101,10 @@ export const userSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.error = "";
-        state.user = action.payload.user;
+        state.user = {
+          ...action.payload.user,
+          socketId: action.payload.user.socketId || "", // ✅ correct socketId setting
+        };
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.status = "failed";
@@ -94,6 +113,6 @@ export const userSlice = createSlice({
   },
 });
 
-export const { logout, changeStatus } = userSlice.actions;
+export const { logout, changeStatus, updateSocketId, setCurrentUser, setSelectedChat } = userSlice.actions;
 
 export default userSlice.reducer;

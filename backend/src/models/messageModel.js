@@ -31,10 +31,10 @@ const messageSchema = new mongoose.Schema(
       default: null,
       index: { expires: 0 },
     },
-    convo_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Conversation",
-    },
+    // convo_id: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "Conversation",
+    // },
     scheduledAt: { type: Date },
     sent: { type: Boolean, default: false },
     createdAt: {
@@ -54,3 +54,4 @@ const MessageModel =
   mongoose.models.MessageModel || mongoose.model("MessageModel", messageSchema);
 
 export default MessageModel;
+ 
